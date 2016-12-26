@@ -1,119 +1,76 @@
-# Fetch adapter
-
-Adapter for browser's native fetch function. 
+# Bivrost save blob adapter
 
 ```
-npm i --save bivrost-fetch-adapter
+npm i --save bivrost-save-blob-adapter
 ```
 
-### Usage
+## Usage
+
+With [Bivrost](https://github.com/tuchk4/bivrost):
 
 ```js
+import DataSource from 'bivrost/data/source';
+import bivrostApi from 'bivrost/http/api'
+import axiosAdapter from 'bivrost-axios-adapter';
+import saveBlobAdapter from 'bivrost-save-blob-adapter';
 
-import fetchAdapter from 'bivrost-fetch-adapter';
+const api = bivrostApi({
+  host: 'localhost',
+  adapter: saveBlobAdapter(axiosAdapter())
+});
 
-const api = fetchAdapter();
+class UsersDataSource extends DataSource {
+  steps = ['api'];
 
-const options = {
-  verb: 'GET',
-  query: {
-    groupId: 10
-  },
-  headers: {
-    'Content-Type': 'application/json'
+  api = {
+    loadAll: api('GET /users', {
+      filename: 'users.json'
+    })    
   }
+
+  saveUsersJSON(filters) {
+    return this.invoke('loadAll', filters);
+  }
+}
+
+const usersDataSource = new UsersDataSource();
+
+// Will save GET /users response as "users.json" file
+usersDataSource.saveUsersJSON().then(() => {
+  console.log('file saved');
+});
+```
+
+Direct calls:
+
+```js
+import axios from 'axios';
+import axiosAdapter from 'bivrost-axios-adapter';
+import saveBlobAdapter from 'bivrost-save-blob-adapter';
+
+const axiosAdapter = axiosAdapter(axios);
+const saveBlob = saveBlobAdapter(axiosAdapter);
+
+const requestOptions = {
+  method: 'GET'
 };
 
-api('/users', options)
-  .then(json => {
-    // ...
-  })
-  .catch(response => {
-    // ...
-  });
+saveBlob('/report/exel', requestOptions, {
+  filename: 'report-excel.xls'
+}).then(() => {
+  console.log('saved')
+}); // browser will save and download response
 ```
 
-Very useful with [bivrost data sources](https://github.com/frankland/bivrost);
 
+----
 
-### Default options
+[Bivrost](https://github.com/tuchk4/bivrost) allows to organize a simple interface to asyncronous APIs.
 
+#### Other adapters
 
-```js
-import fetchAdapter from 'bivrost-fetch-adapter';
-
-const api = fetchAdapter({
-  // default options for each request with created adapter
-  options: {
-    mode: 'cors',
-    redirect: 'follow'
-  }
-});
-```
-
-Available options:
-
-  - headers - associated Headers object
-  - referrer - referrer of the request
-  - mode - cors, no-cors, same-origin
-  - credentials - should cookies go with the request? omit, same-origin
-  - redirect - follow, error, manual
-  - integrity - subresource integrity value
-  - cache - cache mode (default, reload, no-cache)
-
-### Interceptors
-
-```js
-import fetchAdapter from 'bivrost-fetch-adapter';
-
-const api = fetchAdapter({
-  interceptors: {
-    // takes Request instance as argument
-    request: request => {
-      // ...
-    },
-    
-    // takes Response instance as argument
-    response: response=> {
-      // ...
-    }
-  }
-});
-```
-
-  - Request instance docs - https://developer.mozilla.org/en-US/docs/Web/API/Request
-  - Response instance docs - https://developer.mozilla.org/en-US/docs/Web/API/Response
-
-
-    NOTE: If there is a network error or another reason why the HTTP request couldn't be fulfilled, the fetch() promise 
-    will be rejected with a reference to that error.
-    
-    Note that the promise won't be rejected in case of HTTP 4xx or 5xx server responses. 
-    The promise will be resolved just as it would be for HTTP 2xx. Inspect the response.status number within 
-    the resolved callback to add conditional handling of server errors to your code.
-    
-Interceptor example:
-
-```js
-import fetchAdapter from 'bivrost-fetch-adapter';
-
-const api = fetchAdapter({
-  interceptors: {
-    request: request => {
-      request.headers.set('Content-Type', 'application/json');
-    },
-    
-    response: response=> {
-      if (response.ok) { 
-        return response.json();
-      } else {
-        return Promise.reject(response);
-      }
-    }
-  }
-});
-```
-
-### Fetch polyfill
-
-Github whatwg-fetch https://github.com/github/fetch
+  * [Fetch adapter](https://github.com/tuchk4/bivrost-fetch-adapter)
+  * [Axios adapter](https://github.com/tuchk4/bivrost-axios-adapter)
+  * [Delay adapter](https://github.com/tuchk4/bivrost-delay-adapter)
+  * [Local storage adapter](https://github.com/tuchk4/bivrost-local-storage-adapter)
+  * [Save blob adapter adapter](https://github.com/tuchk4/bivrost-save-blob-adapter)
